@@ -19,18 +19,19 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '21.5.0'
+          node-version: '18.x'
 
       - name: npm install, build, and test
         run: |
           npm install
           npm run build --if-present
-
+          npm run test --if-present
+      
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
         with:
           name: node-app
-          path: ./dist/app/browser
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -38,12 +39,21 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
           name: node-app
+      
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5FD41A59788646EF98D3616378E311D3 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3EB43E8F42BA4840AE6B46C50F7B1283 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1C0F8E59ECCD49AD81DF3F43031120BF }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
@@ -51,5 +61,5 @@ jobs:
         with:
           app-name: 'FrontTrelloT'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_C2571C66C24849198B6DBC8D5C5098F1 }}
           package: .
+          
